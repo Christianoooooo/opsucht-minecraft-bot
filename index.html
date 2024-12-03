@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Nachrichten Feed</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: monospace;
+      background-color: white;
+      color: black;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    /* Darkmode-Stile */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: black;
+        color: white;
+      }
+    }
+  </style>
+</head>
+<body>
+  <pre id="json-output">[]</pre>
+  <script>
+    async function fetchMessages() {
+      try {
+        const response = await fetch('http://localhost:3000/api/messages');
+        const messages = await response.json();
+        document.getElementById('json-output').textContent = JSON.stringify(messages, null, 2);
+      } catch (error) {
+        document.getElementById('json-output').textContent = 'Fehler beim Laden der Nachrichten.';
+        console.error('Fehler beim Abrufen:', error);
+      }
+    }
+
+    // Initialer Abruf
+    fetchMessages();
+
+    // Nachrichten alle 5 Sekunden aktualisieren
+    setInterval(fetchMessages, 5000);
+  </script>
+</body>
+</html>

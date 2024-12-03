@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "minecraft-data": "^3.78.0",
+    "mineflayer": "^4.23.0",
+    "prismarine-auth": "^2.5.0"
+  }
+}
