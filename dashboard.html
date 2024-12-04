@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <!-- Inter Var von Google Fonts laden -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Var:wght@100..900&display=swap" rel="stylesheet">
+  <!-- TailwindCSS + DaisyUI CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@2.51.5/dist/full.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter var', 'sans-serif'],
+          },
+        },
+      },
+      plugins: [daisyui],
+    };
+  </script>
+  <style>
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    /* Darkmode-Unterstützung */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1e1e1e;
+        color: white;
+      }
+      input[type="text"], button {
+        background-color: #333;
+        color: white;
+      }
+      pre {
+        background: #333;
+        color: white;
+        border-color: #555;
+      }
+    }
+  </style>
+</head>
+<body class="bg-base-200 min-h-screen font-sans">
+  <!-- Dashboard Content -->
+  <div class="container mx-auto p-6">
+    <h1 class="text-4xl font-bold mb-6">Willkommen im Dashboard</h1>
+    <p class="text-lg mb-4">Hier findest du alle relevanten Informationen und Funktionen.</p>
+
+    <!-- LuckPerms API Abfrage -->
+    <div class="bg-base-100 p-6 shadow-xl rounded-md mb-8">
+      <h2 class="text-2xl font-semibold mb-4">LuckPerms API Abfrage</h2>
+      <form id="luckperms-form" class="flex mb-4">
+        <input type="text" id="username" placeholder="Benutzername eingeben" required class="input input-bordered w-full mr-4">
+        <button type="submit" class="btn btn-primary">Abfrage senden</button>
+      </form>
+      <pre id="output">Ergebnisse werden hier angezeigt...</pre>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkVerificationStatus();
+    });
+
+    async function checkVerificationStatus() {
+      try {
+        const response = await fetch('http://localhost:3000/api/is-verified', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache', // Browser-Caching verhindern
+          },
+        });
+        const data = await response.json();
+
+        if (!data.isVerified) {
+          // Wenn der Benutzer nicht verifiziert ist, leite zur Login-Seite weiter
+          window.location.href = 'login';
+        }
+      } catch (error) {
+        console.error('Fehler bei der Überprüfung des Verifizierungsstatus:', error);
+        // Bei einem Fehler ebenfalls zur Login-Seite weiterleiten
+        window.location.href = 'login';
+      }
+    }
+
+    document.getElementById('luckperms-form').addEventListener('submit', async (e) => {
+      e.preventDefault(); // Verhindert das Standardformularverhalten
+      const username = document.getElementById('username').value.trim();
+      const output = document.getElementById('output');
+      output.textContent = 'Lade...';
+
+      try {
+        const response = await fetch('http://localhost:3000/api/luckperms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user: username }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Fehler: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          output.textContent = `Fehler: ${data.error}`;
+        } else {
+          output.textContent = JSON.stringify(data, null, 2);
+        }
+      } catch (error) {
+        output.textContent = `Fehler beim Abrufen der Daten: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>

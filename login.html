@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Two-Factor Authentication</title>
+  <!-- Inter Var von Google Fonts laden -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Var:wght@100..900&display=swap" rel="stylesheet">
+  <!-- TailwindCSS + DaisyUI CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@2.51.5/dist/full.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter var', 'sans-serif'],
+          },
+        },
+      },
+      plugins: [daisyui],
+    };
+  </script>
+</head>
+<body class="bg-base-200 flex items-center justify-center min-h-screen font-sans">
+  <!-- Login Card -->
+  <div class="card bg-base-100 w-96 shadow-xl">
+    <div class="card-body text-center">
+      <h2 class="card-title justify-center">Two-Factor Authentication</h2>
+      <p class="text-center text-gray-600">
+        Bitte gib deinen 2FA-Code ein, um deinen Account zu schützen.
+      </p>
+      <form class="space-y-4 mt-4" id="twofa-form">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-medium">2FA Code</span>
+          </label>
+          <input
+            type="text"
+            id="twofa-code"
+            placeholder="Code eingeben"
+            class="input input-bordered w-full"
+            required
+          />
+        </div>
+        <div class="card-actions justify-end">
+          <button type="submit" class="btn btn-primary w-full">Verify</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkVerificationStatus();
+    });
+
+    async function checkVerificationStatus() {
+      try {
+        const response = await fetch('http://localhost:3000/api/is-verified', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache', // Browser-Caching verhindern
+          },
+        });
+        const data = await response.json();
+
+        if (data.isVerified) {
+          // Wenn der Benutzer verifiziert ist, leite direkt zum Dashboard weiter
+          window.location.href = 'dashboard';
+        }
+      } catch (error) {
+        console.error('Fehler bei der Überprüfung des Verifizierungsstatus:', error);
+      }
+    }
+
+    document.getElementById('twofa-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const twoFACode = document.getElementById('twofa-code').value;
+
+                  try {
+                    const response = await fetch('http://localhost:3000/api/verify-2fa', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ twoFACode }),
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                      alert('2FA-Code wurde erfolgreich gesendet.');
+                      // Weiterleitung zu dashboard.html nach erfolgreicher Verifizierung
+                      window.location.href = 'dashboard';
+                    } else {
+                      alert('Fehler: ' + data.error);
+                    }
+                  } catch (error) {
+                    alert('Fehler beim Senden des Codes: ' + error.message);
+                  }
+                });
+              </script>
+            </body>
+            </html>

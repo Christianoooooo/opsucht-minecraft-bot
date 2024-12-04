@@ -4,6 +4,7 @@ const readline = require('readline');
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 const app = express();
 const port = 3000;
@@ -13,6 +14,7 @@ app.use(bodyParser.json());
 
 let bot;
 let chatMessages = []; // Speicher für die Chat-Nachrichten
+let isVerified = false; // Status, ob der Benutzer bereits verifiziert ist
 
 function createBot() {
   const authflow = new Authflow('MinecraftBot', './auth_cache'); // Authflow für Microsoft Login
@@ -65,10 +67,21 @@ function createBot() {
   bot.on('message', (jsonMsg) => {
     const message = parseMessage(jsonMsg);
     if (message) {
-      const timestamp = new Date()
-        .toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });
+      const timestamp = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });
       chatMessages.push(`${timestamp} | ${message}`);
       console.log(`Nachricht gespeichert: ${timestamp} | ${message}`);
+
+      // Überprüfen, ob die Nachricht die 2FA-Aufforderung enthält
+      if (message.includes('SICHERHEIT»Du musst deinen 2fa Code mit /2fa')) {
+        console.log('Information: 2FA-Code erforderlich. Bitte im Web-Interface eingeben.');
+        isVerified = false; // Setze den Verifizierungsstatus zurück
+      }
+
+      // Überprüfen, ob die Nachricht eine automatische Anmeldung bestätigt
+      if (message.includes('SICHERHEIT»Ich habe mich an deine IP-Adresse erinnert und dich automatisch angemeldet.')) {
+        console.log('Information: Automatische Anmeldung erkannt. Benutzer ist verifiziert.');
+        isVerified = true; // Setze den Verifizierungsstatus auf "verifiziert"
+      }
     } else {
       console.warn('Unerwartetes Nachrichtenformat:', JSON.stringify(jsonMsg));
     }
@@ -131,7 +144,40 @@ function createBot() {
       }
     }, 10000); // Timeout auf 10 Sekunden erhöht
   });
+
+  // Neuer API-Endpunkt zum Verifizieren des 2FA-Codes
+  app.post('/api/verify-2fa', (req, res) => {
+    const { twoFACode } = req.body;
+
+    if (!twoFACode) {
+      return res.status(400).json({ error: '2FA Code fehlt!' });
+    }
+
+    if (bot) {
+      console.log(`Information: 2FA Code wird mit /2fa ${twoFACode} eingegeben...`);
+      bot.chat(`/2fa ${twoFACode}`);
+      isVerified = true; // Setze den Verifizierungsstatus auf "verifiziert"
+      res.json({ message: '2FA Code erfolgreich gesendet.' });
+    } else {
+      res.status(500).json({ error: 'Bot ist nicht verbunden.' });
+    }
+  });
+
+  // API-Endpunkt zum Überprüfen des Verifizierungsstatus
+  app.get('/api/is-verified', (req, res) => {
+    res.json({ isVerified });
+  });
 }
+
+// Route für /login (zeigt login.html an)
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// Route für /dashboard (zeigt dashboard.html an)
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
 
 app.get('/api/messages', (req, res) => {
   if (chatMessages.length === 0) {
